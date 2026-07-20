@@ -102,9 +102,22 @@ function syncVideo() {
             videoElement.src = currentVideo.url;
             videoElement.load();
             videoElement.currentTime = seekTime;
-            videoElement.play().catch(e => {
-                console.log("Autoplay blocked or error:", e);
+            
+            // Critical fix: force unmute and attempt play
+            videoElement.muted = true; // Start muted to guarantee autoplay
+            videoElement.play().then(() => {
+                console.log("Autoplay started muted.");
+                // Provide a UI hint or wait for first click to unmute
+                const unmuteOnFirstClick = () => {
+                    videoElement.muted = false;
+                    document.removeEventListener('click', unmuteOnFirstClick);
+                    console.log("Audio unmuted via user interaction.");
+                };
+                document.addEventListener('click', unmuteOnFirstClick);
+            }).catch(e => {
+                console.log("Autoplay blocked even when muted:", e);
                 const playOnInteract = () => {
+                    videoElement.muted = false;
                     videoElement.play();
                     document.removeEventListener('click', playOnInteract);
                 };
