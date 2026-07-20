@@ -11,4 +11,4 @@ Retro-synthwave live TV station playing public domain animation classics.
 - Live-synced broadcast: All visitors see the same frame of the same video at the same time.
 - Public domain classics: Steamboat Willie, The Skeleton Dance, and more.
 
-*Deployment trigger: Monday, July 20, 2026*
+*Latest deployment: Monday, July 20, 2026*
