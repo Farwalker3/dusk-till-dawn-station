@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dusk till Dawn Station</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="synth-background">
+        <div class="tv-container">
+            <div class="tv-frame">
+                <div class="screen-area">
+                    <div id="video-container">
+                        <video id="broadcast-video" preload="auto" playsinline></video>
+                    </div>
+                    <div id="off-air" class="hidden">
+                        <div class="test-card">
+                            <div class="smpte-bars"></div>
+                            <div class="off-air-text">
+                                <h1>STATION CLOSED</h1>
+                                <p>RETURN AT DUSK (6:00 PM)</p>
+                            </div>
+                        </div>
+                        <div class="static-overlay"></div>
+                    </div>
+                    <div class="scanlines"></div>
+                </div>
+                <div class="controls">
+                    <div class="power-panel">
+                        <div id="power-led" class="led"></div>
+                        <span class="label">POWER</span>
+                    </div>
+                    <div class="dials">
+                        <div class="dial dial-big"></div>
+                        <div class="dial dial-small"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
