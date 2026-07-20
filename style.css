@@ -70,7 +70,7 @@ body {
     align-items: center;
 }
 
-#video-container, #off-air {
+#video-container, #off-air, #interaction-overlay {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -82,6 +82,49 @@ video {
     width: 100%;
     height: 100%;
     object-fit: contain;
+}
+
+/* Interaction Overlay */
+#interaction-overlay {
+    z-index: 25;
+    background: rgba(0,0,0,0.6);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.3s;
+}
+
+#interaction-overlay:hover {
+    background: rgba(0,0,0,0.4);
+}
+
+.play-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--neon-pink);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 20px var(--neon-pink);
+    margin-bottom: 15px;
+}
+
+.play-icon svg {
+    width: 40px;
+    height: 40px;
+    fill: #fff;
+    margin-left: 5px;
+}
+
+.overlay-text {
+    color: #fff;
+    font-size: 18px;
+    letter-spacing: 5px;
+    font-weight: bold;
+    text-shadow: 0 0 10px #fff;
 }
 
 /* Bumper Overlay Styling */
@@ -147,7 +190,7 @@ video {
     height: 32px;
     padding: 4px;
     cursor: pointer;
-    z-index: 20;
+    z-index: 30;
     opacity: 0.4;
     transition: opacity 0.3s, background 0.3s;
 }

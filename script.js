@@ -34,10 +34,13 @@ const powerLed = document.getElementById('power-led');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 const tvFrame = document.getElementById('main-tv-frame');
 
-// New Bumper Elements
+// Overlays
+const interactionOverlay = document.getElementById('interaction-overlay');
 const bumperOverlay = document.getElementById('bumper-overlay');
 const nextTitleEl = document.getElementById('next-title');
 const afterTitleEl = document.getElementById('after-title');
+
+let stationHasInteracted = false;
 
 function isOnAir() {
     const now = new Date();
@@ -52,15 +55,31 @@ function updateStation() {
         offAirElement.classList.add('hidden');
         videoElement.classList.remove('hidden');
         powerLed.classList.add('on');
+        
+        if (!stationHasInteracted) {
+            interactionOverlay.classList.remove('hidden');
+        }
+        
         syncVideo();
     } else {
         offAirElement.classList.remove('hidden');
         videoElement.classList.add('hidden');
         powerLed.classList.remove('on');
         bumperOverlay.classList.add('hidden');
+        interactionOverlay.classList.add('hidden');
         videoElement.pause();
     }
 }
+
+function handleTuneIn() {
+    stationHasInteracted = true;
+    interactionOverlay.classList.add('hidden');
+    videoElement.muted = false;
+    videoElement.play();
+    syncVideo();
+}
+
+interactionOverlay.addEventListener('click', handleTuneIn);
 
 function syncVideo() {
     const nowUnix = Math.floor(Date.now() / 1000);
@@ -85,11 +104,9 @@ function syncVideo() {
     if (currentVideo) {
         // Handle Bumper Logic
         const remainingTime = currentVideo.duration - seekTime;
-        // Show bumper for the last 15 seconds
         if (remainingTime <= 15) {
             const nextIndex = (currentIndex + 1) % playlist.length;
             const afterIndex = (currentIndex + 2) % playlist.length;
-            
             nextTitleEl.innerText = playlist[nextIndex].title;
             afterTitleEl.innerText = playlist[afterIndex].title;
             bumperOverlay.classList.remove('hidden');
@@ -103,26 +120,9 @@ function syncVideo() {
             videoElement.load();
             videoElement.currentTime = seekTime;
             
-            // Critical fix: force unmute and attempt play
-            videoElement.muted = true; // Start muted to guarantee autoplay
-            videoElement.play().then(() => {
-                console.log("Autoplay started muted.");
-                // Provide a UI hint or wait for first click to unmute
-                const unmuteOnFirstClick = () => {
-                    videoElement.muted = false;
-                    document.removeEventListener('click', unmuteOnFirstClick);
-                    console.log("Audio unmuted via user interaction.");
-                };
-                document.addEventListener('click', unmuteOnFirstClick);
-            }).catch(e => {
-                console.log("Autoplay blocked even when muted:", e);
-                const playOnInteract = () => {
-                    videoElement.muted = false;
-                    videoElement.play();
-                    document.removeEventListener('click', playOnInteract);
-                };
-                document.addEventListener('click', playOnInteract);
-            });
+            // Background sync (muted) until tuned in
+            videoElement.muted = !stationHasInteracted;
+            videoElement.play().catch(e => console.log("Waiting for tune in..."));
         } else {
             if (Math.abs(videoElement.currentTime - seekTime) > 2) {
                 videoElement.currentTime = seekTime;
@@ -155,4 +155,4 @@ updateStation();
 setInterval(updateStation, 60000);
 setInterval(() => {
     if (isOnAir()) syncVideo();
-}, 1000); // More frequent check for bumpers
+}, 1000);
