@@ -34,10 +34,14 @@ const powerLed = document.getElementById('power-led');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 const tvFrame = document.getElementById('main-tv-frame');
 
+// New Bumper Elements
+const bumperOverlay = document.getElementById('bumper-overlay');
+const nextTitleEl = document.getElementById('next-title');
+const afterTitleEl = document.getElementById('after-title');
+
 function isOnAir() {
     const now = new Date();
     const hours = now.getHours();
-    // On air from 6 PM (18) to 6 AM (6)
     return hours >= 18 || hours < 6;
 }
 
@@ -48,12 +52,12 @@ function updateStation() {
         offAirElement.classList.add('hidden');
         videoElement.classList.remove('hidden');
         powerLed.classList.add('on');
-        
         syncVideo();
     } else {
         offAirElement.classList.remove('hidden');
         videoElement.classList.add('hidden');
         powerLed.classList.remove('on');
+        bumperOverlay.classList.add('hidden');
         videoElement.pause();
     }
 }
@@ -64,11 +68,14 @@ function syncVideo() {
     
     let elapsedTime = 0;
     let currentVideo = null;
+    let currentIndex = -1;
     let seekTime = 0;
     
-    for (const video of playlist) {
+    for (let i = 0; i < playlist.length; i++) {
+        const video = playlist[i];
         if (timeInCycle < elapsedTime + video.duration) {
             currentVideo = video;
+            currentIndex = i;
             seekTime = timeInCycle - elapsedTime;
             break;
         }
@@ -76,6 +83,20 @@ function syncVideo() {
     }
     
     if (currentVideo) {
+        // Handle Bumper Logic
+        const remainingTime = currentVideo.duration - seekTime;
+        // Show bumper for the last 15 seconds
+        if (remainingTime <= 15) {
+            const nextIndex = (currentIndex + 1) % playlist.length;
+            const afterIndex = (currentIndex + 2) % playlist.length;
+            
+            nextTitleEl.innerText = playlist[nextIndex].title;
+            afterTitleEl.innerText = playlist[afterIndex].title;
+            bumperOverlay.classList.remove('hidden');
+        } else {
+            bumperOverlay.classList.add('hidden');
+        }
+
         const currentSrc = videoElement.getAttribute('src');
         if (currentSrc !== currentVideo.url) {
             videoElement.src = currentVideo.url;
@@ -83,7 +104,6 @@ function syncVideo() {
             videoElement.currentTime = seekTime;
             videoElement.play().catch(e => {
                 console.log("Autoplay blocked or error:", e);
-                // Standard interaction required for sound/play
                 const playOnInteract = () => {
                     videoElement.play();
                     document.removeEventListener('click', playOnInteract);
@@ -91,7 +111,6 @@ function syncVideo() {
                 document.addEventListener('click', playOnInteract);
             });
         } else {
-            // Correct drift if needed
             if (Math.abs(videoElement.currentTime - seekTime) > 2) {
                 videoElement.currentTime = seekTime;
             }
@@ -104,34 +123,23 @@ function toggleFullscreen() {
     if (!document.fullscreenElement) {
         if (tvFrame.requestFullscreen) {
             tvFrame.requestFullscreen();
-        } else if (tvFrame.webkitRequestFullscreen) { /* Safari */
+        } else if (tvFrame.webkitRequestFullscreen) {
             tvFrame.webkitRequestFullscreen();
-        } else if (tvFrame.msRequestFullscreen) { /* IE11 */
-            tvFrame.msRequestFullscreen();
         }
     } else {
         if (document.exitFullscreen) {
             document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { /* Safari */
+        } else if (document.webkitExitFullscreen) {
             document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { /* IE11 */
-            document.msExitFullscreen();
         }
     }
 }
 
 fullscreenBtn.addEventListener('click', toggleFullscreen);
-
-// Tap video to toggle fullscreen too
 videoElement.addEventListener('dblclick', toggleFullscreen);
 
-// Initial check
 updateStation();
-
-// Check every minute for sign-on/sign-off
 setInterval(updateStation, 60000);
-
-// Keep sync accurate
 setInterval(() => {
     if (isOnAir()) syncVideo();
-}, 5000);
+}, 1000); // More frequent check for bumpers
