@@ -31,6 +31,8 @@ const totalDuration = playlist.reduce((acc, video) => acc + video.duration, 0);
 const videoElement = document.getElementById('broadcast-video');
 const offAirElement = document.getElementById('off-air');
 const powerLed = document.getElementById('power-led');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const tvFrame = document.getElementById('main-tv-frame');
 
 function isOnAir() {
     const now = new Date();
@@ -96,6 +98,32 @@ function syncVideo() {
         }
     }
 }
+
+// Fullscreen logic
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        if (tvFrame.requestFullscreen) {
+            tvFrame.requestFullscreen();
+        } else if (tvFrame.webkitRequestFullscreen) { /* Safari */
+            tvFrame.webkitRequestFullscreen();
+        } else if (tvFrame.msRequestFullscreen) { /* IE11 */
+            tvFrame.msRequestFullscreen();
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
+    }
+}
+
+fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+// Tap video to toggle fullscreen too
+videoElement.addEventListener('dblclick', toggleFullscreen);
 
 // Initial check
 updateStation();
