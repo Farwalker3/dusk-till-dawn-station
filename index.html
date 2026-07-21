@@ -1,68 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" href="/favicon.svg">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dusk till Dawn Station</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nightstation — Dusk to Dawn TV</title>
+    <meta name="description" content="Nightstation by Dotcoon — curated dusk-to-dawn television broadcasting.">
+    <link rel="stylesheet" href="style.css?v=20260619">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Inter:wght@400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="synth-background">
-        <div class="tv-container">
-            <div class="tv-frame" id="main-tv-frame">
-                <div class="screen-area">
-                    <div id="video-container">
-                        <video id="broadcast-video" preload="auto" playsinline></video>
-                    </div>
-                    
-                    <!-- Unified Interaction Overlay (Play/Unmute/Sync) -->
-                    <div id="interaction-overlay" class="hidden">
-                        <div class="overlay-content">
-                            <div class="play-icon">
-                                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                            <div class="overlay-text">TUNE IN</div>
-                        </div>
-                    </div>
+    <!-- VIDEO PLAYER LAYER -->
+    <div id="video-layer">
+        <div id="youtube-player-wrap"><div id="yt-player"></div></div>
+        <video id="mp4-player" autoplay></video>
+        <iframe id="iframe-player" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    </div>
 
-                    <!-- New Bumper Overlay -->
-                    <div id="bumper-overlay" class="hidden">
-                        <div class="bumper-content">
-                            <div class="bumper-tag">COMING UP</div>
-                            <div id="next-title" class="title">NEXT TITLE</div>
-                            <div class="bumper-tag secondary">FOLLOWED BY</div>
-                            <div id="after-title" class="title small">AFTER TITLE</div>
-                        </div>
-                    </div>
+    <!-- CRT OVERLAY (scanlines + vignette) -->
+    <div id="crt-overlay"></div>
 
-                    <div id="off-air" class="hidden">
-                        <div class="test-card">
-                            <div class="smpte-bars"></div>
-                            <div class="off-air-text">
-                                <h1>STATION CLOSED</h1>
-                                <p>RETURN AT DUSK (6:00 PM)</p>
-                            </div>
-                        </div>
-                        <div class="static-overlay"></div>
-                    </div>
-                    <div class="scanlines"></div>
-                    <button id="fullscreen-btn" title="Toggle Fullscreen">
-                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                    </button>
+    <!-- EPG GUIDE OVERLAY -->
+    <div id="epg-overlay" class="hidden">
+        <div id="epg-header">
+            <div id="epg-marquee">
+                <span id="epg-ticker"></span>
+            </div>
+            <div id="epg-branding">
+                <img src="Dotcoon.jpg" alt="Nightstation" id="epg-logo">
+                <div id="epg-clock">
+                    <div id="epg-date"></div>
+                    <div id="epg-time"></div>
                 </div>
-                <div class="controls">
-                    <div class="power-panel">
-                        <div id="power-led" class="led"></div>
-                        <span class="label">POWER</span>
-                    </div>
-                    <div class="dials">
-                        <div class="dial dial-big"></div>
-                        <div class="dial dial-small"></div>
-                    </div>
+                <div id="epg-weather">
+                    <span id="weather-icon">🌙</span>
+                    <span id="weather-temp">--°</span>
+                    <span id="weather-desc"></span>
                 </div>
             </div>
         </div>
+        <div id="epg-body">
+            <div id="epg-channels">
+                <div class="epg-channel active" data-ch="ns">
+                    <span class="ch-num">001</span>
+                    <span class="ch-name">NIGHTSTATION</span>
+                </div>
+                <div class="epg-channel" data-ch="retro50">
+                    <span class="ch-num">002</span>
+                    <span class="ch-name">50s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="retro60">
+                    <span class="ch-num">003</span>
+                    <span class="ch-name">60s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="retro70">
+                    <span class="ch-num">004</span>
+                    <span class="ch-name">70s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="retro80">
+                    <span class="ch-num">005</span>
+                    <span class="ch-name">80s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="retro90">
+                    <span class="ch-num">006</span>
+                    <span class="ch-name">90s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="retro00">
+                    <span class="ch-num">007</span>
+                    <span class="ch-name">2000s TV</span>
+                </div>
+                <div class="epg-channel" data-ch="chill">
+                    <span class="ch-num">008</span>
+                    <span class="ch-name">CHILLHOP</span>
+                </div>
+            </div>
+            <div id="epg-schedule">
+                <div id="schedule-list"></div>
+            </div>
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <!-- INFO BAR (bottom ticker) -->
+    <div id="info-bar">
+        <div id="info-logo">NS</div>
+        <div id="info-time"></div>
+        <div id="info-divider">│</div>
+        <div id="info-now">Loading...</div>
+        <div id="info-divider2">│</div>
+        <div id="info-next">UP NEXT: --</div>
+        <div id="info-weather-mini">
+            <span id="info-weather-icon">🌙</span>
+            <span id="info-weather-temp">--°</span>
+        </div>
+    </div>
+
+    <!-- OFF-AIR SIGN -->
+    <div id="off-air-screen" class="hidden">
+        <img src="Dotcoon.jpg" alt="Nightstation" class="offair-logo">
+        <div class="offair-text">OFF AIR</div>
+        <div class="offair-sub">Broadcasting resumes at dusk</div>
+        <div class="offair-hint">Press ▲▼ to browse channels</div>
+    </div>
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <img src="Dotcoon.jpg" alt="Nightstation" class="loading-logo">
+        <div class="loading-text">NIGHTSTATION</div>
+        <div class="loading-sub">Tuning in...</div>
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- WEB CONTROLS: clickable channel switching for browser/touch (keys get eaten by embedded players) -->
+    <div id="web-controls" style="position:fixed;bottom:70px;right:16px;z-index:60;display:flex;gap:8px;font-family:monospace">
+        <button onclick="channelDown()" title="Previous channel" style="background:rgba(10,20,12,.85);color:#3dff9b;border:1px solid #0a6;border-radius:6px;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer">▼ CH</button>
+        <button onclick="toggleEPG()" title="Guide" style="background:rgba(10,20,12,.85);color:#7fd6ff;border:1px solid #248;border-radius:6px;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer">GUIDE</button>
+        <button onclick="channelUp()" title="Next channel" style="background:rgba(10,20,12,.85);color:#3dff9b;border:1px solid #0a6;border-radius:6px;padding:10px 14px;font:inherit;font-size:14px;cursor:pointer">CH ▲</button>
+    </div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="script.js?v=20260619"></script>
 </body>
 </html>
