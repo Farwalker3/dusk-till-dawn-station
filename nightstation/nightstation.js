@@ -3,8 +3,6 @@
    ============================================================ */
 
 // ---- CHANNEL REGISTRY ----
-// Channels that block iframe embedding (X-Frame-Options: SAMEORIGIN)
-// must be loaded via Flutter WebView URL swap (native navigation).
 const CHANNEL_REGISTRY = {
     ns:       { name: 'NIGHTSTATION', num: '001', type: 'native' },
     retro50:  { name: '50s TV',       num: '002', type: 'webview', url: 'https://50s.myretrotvs.com/' },
@@ -31,12 +29,20 @@ const NS = {
     epgFocusIndex: 0,
     infoBarTimer: null,
     weatherData: null,
-    dusk: null,
-    dawn: null,
     isOnAir: false,
     recentlyPlayed: JSON.parse(localStorage.getItem('ns_recent') || '[]'),
     channels: Object.keys(CHANNEL_REGISTRY),
+    // Broadcast hours in ET
+    DUSK_H: 18, // 6 PM ET
+    DAWN_H: 6,  // 6 AM ET
 };
+
+// ---- TIME UTILS (EST/EDT) ----
+function getEasternTime() {
+    const now = new Date();
+    const etStr = now.toLocaleString("en-US", { timeZone: "America/New_York" });
+    return new Date(etStr);
+}
 
 // ---- CSV PARSER ----
 function parseCSV(text) {
@@ -77,43 +83,11 @@ async function loadAllData() {
     console.log(`Loaded: ${catalog.length} catalog, ${overrides.length} overrides`);
 }
 
-// ---- DUSK / DAWN ----
-async function fetchDuskDawn(lat, lng) {
-    try {
-        const res = await fetch(`https://api.sunrisesunset.io/json?lat=${lat}&lng=${lng}`);
-        const data = await res.json();
-        if (data.status === 'OK') {
-            NS.dusk = parseTimeStr(data.results.dusk);
-            NS.dawn = parseTimeStr(data.results.dawn);
-            console.log('Dusk:', NS.dusk, 'Dawn:', NS.dawn);
-        }
-    } catch (e) {
-        console.warn('Dusk/dawn API failed, using defaults');
-        NS.dusk = new Date(); NS.dusk.setHours(20, 0, 0);
-        NS.dawn = new Date(); NS.dawn.setHours(6, 0, 0);
-    }
-}
-
-function parseTimeStr(str) {
-    const parts = str.match(/(\d+):(\d+):(\d+)\s*(AM|PM)/i);
-    if (!parts) return null;
-    let h = parseInt(parts[1]), m = parseInt(parts[2]);
-    if (parts[4].toUpperCase() === 'PM' && h !== 12) h += 12;
-    if (parts[4].toUpperCase() === 'AM' && h === 12) h = 0;
-    const d = new Date(); d.setHours(h, m, 0, 0);
-    return d;
-}
-
 function checkOnAir() {
-    if (!NS.dusk || !NS.dawn) return true;
-    const now = new Date();
-    const nowMin = now.getHours() * 60 + now.getMinutes();
-    const duskMin = NS.dusk.getHours() * 60 + NS.dusk.getMinutes();
-    const dawnMin = NS.dawn.getHours() * 60 + NS.dawn.getMinutes();
-    if (duskMin > dawnMin) {
-        return nowMin >= duskMin || nowMin < dawnMin;
-    }
-    return nowMin >= duskMin && nowMin < dawnMin;
+    const nowET = getEasternTime();
+    const h = nowET.getHours();
+    // 6 PM (18) to 6 AM (6)
+    return h >= NS.DUSK_H || h < NS.DAWN_H;
 }
 
 // ---- WEATHER ----
@@ -152,18 +126,17 @@ function updateWeatherUI() {
 
 // ---- SCHEDULE ENGINE ----
 function buildSchedule() {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
+    const nowET = getEasternTime();
+    const today = nowET.toISOString().slice(0, 10);
     const todayOverrides = NS.overrides.filter(o => o.date === today || o.date === '*');
     const timeline = [];
-    const duskH = NS.dusk ? NS.dusk.getHours() : 20;
 
     todayOverrides.forEach(o => {
         if (o.content_id && o.time) {
             const item = NS.catalog.find(c => c.id === o.content_id);
             if (item) {
                 const [h, m] = o.time.split(':').map(Number);
-                const startTime = new Date(now);
+                const startTime = new Date(nowET);
                 startTime.setHours(h, m, 0, 0);
                 timeline.push({
                     time: o.time,
@@ -177,11 +150,14 @@ function buildSchedule() {
     });
 
     if (timeline.length === 0 && NS.catalog.length > 0) {
-        let startTime = NS.dusk || new Date();
-        if (!NS.dusk) startTime.setHours(20, 0, 0, 0);
+        let startTime = new Date(nowET);
+        startTime.setHours(NS.DUSK_H, 0, 0, 0);
+        if (nowET.getHours() < NS.DAWN_H) {
+            startTime.setDate(startTime.getDate() - 1);
+        }
         
         let currentTime = new Date(startTime);
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 48; i++) {
             const item = NS.catalog[i % NS.catalog.length];
             const timeStr = currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
             timeline.push({
@@ -200,10 +176,10 @@ function buildSchedule() {
     NS.schedule = timeline;
     
     // Find what's playing now
-    const nowTs = now.getTime();
+    const etTs = nowET.getTime();
     let currentIdx = 0;
     for (let i = 0; i < NS.schedule.length; i++) {
-        if (NS.schedule[i].startTime.getTime() <= nowTs) {
+        if (NS.schedule[i].startTime.getTime() <= etTs) {
             currentIdx = i;
         } else {
             break;
@@ -393,9 +369,9 @@ function showInfoBar() {
 }
 
 function updateClock() {
-    const now = new Date();
-    const time = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const date = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    const nowET = getEasternTime();
+    const time = nowET.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const date = nowET.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     document.getElementById('info-time').textContent = time;
     document.getElementById('epg-time').textContent = time;
     document.getElementById('epg-date').textContent = date.toUpperCase();
@@ -409,7 +385,7 @@ function updateClock() {
     // Check if we need to switch content based on time
     if (NS.currentChannel === 'ns' && NS.isOnAir && NS.schedule.length > 0) {
         const nextEntry = NS.schedule[NS.currentIndex + 1];
-        if (nextEntry && now >= nextEntry.startTime) {
+        if (nextEntry && nowET >= nextEntry.startTime) {
             playNext();
         }
     }
@@ -531,7 +507,6 @@ async function init() {
 
     const loc = await getLocation();
     await Promise.all([
-        fetchDuskDawn(loc.lat, loc.lng),
         fetchWeather(loc.lat, loc.lng),
     ]);
 
